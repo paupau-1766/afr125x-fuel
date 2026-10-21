@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AFR125X 油耗記錄｜澳門98</title>
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQUZSMTI1WCDlhazlhazorqHlhb8iLCJzaG9ydF9uYW1lIjoiQUZSMTI1WCIsImRlc2NyaXB0aW9uIjoiQUZSMTI1WCDehOWbv+WcsOWbv+S6p+S6pIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmNWY3ZjkiLCJ0aGVtZV9jb2xvciI6IiMzNzcwZjAiLCJpY29ucyI6W3sic3JjIjoiZGF0YTppbWFnZS9zdmcreG1sLDxzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgMTAwIDEwMCc+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9JyMzNzcwZjAnLz48dGV4dCB4PSc1MCcgeT0nNjAnIGZvbnQtZmFtaWx5PSJBcmlhbCcgZm9udC1zaXplPSc1MCcgZmlsbD0nd2hpdGUnIHRleHQtYW5jaG9yPSJtaWRkbGUiPkY8L3RleHQ+PC9zdmc+Iiwic2l6ZXMiOiIxOTJ4MTkyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV19">
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#3770f0">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -45,19 +45,9 @@ button{width:100%;padding:14px;border:none;border-radius:10px;margin-top:8px;fon
 </div>
 
 <script>
-// ===== Service Worker 內嵌（重點！用呢個先滿足Chrome安裝條件）
-const swCode = `
-const CACHE_NAME = 'fuel-app-v1';
-self.addEventListener('install', e=>{self.skipWaiting();});
-self.addEventListener('activate', e=>{e.waitUntil(self.clients.claim());});
-self.addEventListener('fetch', e=>{
-  e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));
-});
-`;
-const swBlob = new Blob([swCode],{type:'application/javascript'});
-const swUrl = URL.createObjectURL(swBlob);
+// 註冊 Service Worker
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register(swUrl).catch(console.log);
+  navigator.serviceWorker.register('./sw.js');
 }
 
 let records = JSON.parse(localStorage.getItem('fuel')) || [];
@@ -96,7 +86,8 @@ function render(){
         if(r.fuel100){sumFuel += Number(r.fuel100);sumDist += Number(r.dist);}
         box.innerHTML += `<div class="item">${r.date}<br>里程：${r.mile}km｜加${r.litre}L@${r.price}MOP/L ${r.dist?'｜行${r.dist}km，油耗${r.fuel100} L/100km，每公里${r.costKm} MOP':''}${r.note?'<br>備註：'+r.note:''} <button onclick="del(${i})">刪除</button></div>`;
     })
-    const avgFuel = sumDist>0 ? (sumFuel / records.filter(x=>x.fuel100).length).toFixed(2) : '-';
+    const valid = records.filter(x=>x.fuel100);
+    const avgFuel = valid.length>0 ? (sumFuel / valid.length).toFixed(2) : '-';
     const avgCost = sumDist>0 ? (sumFuel * records[records.length-1].price / sumDist).toFixed(3) : '-';
     statBox.innerText = `平均油耗：${avgFuel} L/100km｜每公里油費：${avgCost} MOP`;
 }
