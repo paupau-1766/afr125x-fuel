@@ -7,6 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#3770f0">
 <meta name="mobile-web-app-capable" content="yes">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
 body{background:#f5f7f9;padding:16px}
@@ -19,6 +20,7 @@ button{width:100%;padding:14px;border:none;border-radius:10px;margin-top:8px;fon
 .btn-export{background:#059669}
 .btn-del{background:#dc2626}
 .item{padding:10px;border-bottom:1px solid #eee;font-size:14px;line-height:1.5}
+.chart-wrap{width:100%;height:260px}
 </style>
 </head>
 <body>
@@ -33,7 +35,14 @@ button{width:100%;padding:14px;border:none;border-radius:10px;margin-top:8px;fon
 </div>
 
 <div class="card">
-<h2>📊 整體統計</h2>
+<h2>📊 油耗走勢圖</h2>
+<div class="chart-wrap">
+<canvas id="fuelChart"></canvas>
+</div>
+</div>
+
+<div class="card">
+<h2>整體統計</h2>
 <div id="stat">平均油耗：- L/100km｜每公里油費：- MOP</div>
 <button class="btn-export" onclick="exportCSV()">📤 匯出CSV備份</button>
 <button class="btn-del" onclick="clearAll()">🗑️ 清空全部記錄</button>
@@ -51,7 +60,56 @@ if('serviceWorker' in navigator){
 }
 
 let records = JSON.parse(localStorage.getItem('fuel')) || [];
+let chart;
+
 function save(){localStorage.setItem('fuel', JSON.stringify(records))}
+
+// 繪製圖表
+function renderChart(){
+  const ctx = document.getElementById('fuelChart').getContext('2d');
+  // 提取有效油耗數據（排除第一條基準記錄）
+  const fuelData = records.filter(r=>r.fuel100);
+  const labels = fuelData.map((_,idx)=>`第${idx+1}次`);
+  const data = fuelData.map(r=>Number(r.fuel100));
+
+  if(chart) chart.destroy();
+
+  chart = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels: labels,
+      datasets:[{
+        label:'油耗 L/100km',
+        data:data,
+        borderColor:'#3770f0',
+        backgroundColor:'rgba(55,112,240,0.15)',
+        fill:true,
+        tension:0.2,
+        pointRadius:4
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        tooltip:{
+          callbacks:{
+            label:function(item){
+              return `油耗：${item.raw} L/100km`;
+            }
+          }
+        }
+      },
+      scales:{
+        y:{
+          title:{display:true,text:"L/100km"},
+          beginAtZero:false
+        }
+      }
+    }
+  });
+}
+
 function add(){
     const mile = Number(document.getElementById('mile').value);
     const litre = Number(document.getElementById('litre').value);
@@ -69,7 +127,7 @@ function add(){
         date: new Date().toLocaleString('zh-Hant'),
         mile,litre,price,dist,fuel100,costKm,note
     });
-    save();render();
+    save();render();renderChart();
     document.getElementById('mile').value='';
     document.getElementById('litre').value='';
     document.getElementById('price').value='';
@@ -93,11 +151,11 @@ function render(){
 }
 function del(i){
     if(!confirm('刪除呢條？'))return;
-    records.splice(i,1);save();render();
+    records.splice(i,1);save();render();renderChart();
 }
 function clearAll(){
     if(!confirm('確定清空所有記錄？冇得返轉頭！'))return;
-    records=[];save();render();
+    records=[];save();render();renderChart();
 }
 function exportCSV(){
     if(records.length===0){alert('暫時冇記錄');return;}
@@ -110,6 +168,7 @@ function exportCSV(){
     URL.revokeObjectURL(url);
 }
 render();
+renderChart();
 </script>
 </body>
 </html>
