@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AFR125X 油耗記錄｜澳門98</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQUZSMTI1WCDlhazlhazorqHlhb8iLCJzaG9ydF9uYW1lIjoiQUZSMTI1WCIsImRlc2NyaXB0aW9uIjoiQUZSMTI1WCDehOWbv+WcsOWbv+S6p+S6pIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmNWY3ZjkiLCJ0aGVtZV9jb2xvciI6IiMzNzcwZjAiLCJpY29ucyI6W3sic3JjIjoiZGF0YTppbWFnZS9zdmcreG1sLDxzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgMTAwIDEwMCc+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9JyMzNzcwZjAnLz48dGV4dCB4PSc1MCcgeT0nNjAnIGZvbnQtZmFtaWx5PSJBcmlhbCcgZm9udC1zaXplPSc1MCcgZmlsbD0nd2hpdGUnIHRleHQtYW5jaG9yPSJtaWRkbGUiPkY8L3RleHQ+PC9zdmc+Iiwic2l6ZXMiOiIxOTJ4MTkyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV19">
+<meta name="theme-color" content="#3770f0">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
+body{background:#f5f7f9;padding:16px}
+.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 4px #00000015}
+h2{font-size:18px;margin-bottom:8px;color:#222}
+.tip{color:#d97706;font-size:14px;margin-bottom:12px}
+input,textarea{width:100%;padding:14px;border:1px solid #ddd;border-radius:10px;margin:8px 0;font-size:16px;background:#fff}
+button{width:100%;padding:14px;border:none;border-radius:10px;margin-top:8px;font-size:16px;color:#fff}
+.btn-add{background:#3770f0}
+.btn-export{background:#059669}
+.btn-del{background:#dc2626}
+.item{padding:10px;border-bottom:1px solid #eee;font-size:14px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="card">
+<h2>⛽ 新增加油記錄（AFR125X｜98）</h2>
+<div class="tip">⚠️ 建議每次加到跳槍，數據先準確</div>
+<input id="mile" placeholder="本次總里程 km" type="number" step="0.01">
+<input id="litre" placeholder="加油量 L" type="number" step="0.01">
+<input id="price" placeholder="98單價 MOP/L" type="number" step="0.01">
+<textarea id="note" placeholder="備註：行車情況、載重等"></textarea>
+<button class="btn-add" onclick="add()">✅ 新增並計算油耗</button>
+</div>
+
+<div class="card">
+<h2>📊 整體統計</h2>
+<div id="stat">平均油耗：- L/100km｜每公里油費：- MOP</div>
+<button class="btn-export" onclick="exportCSV()">📤 匯出CSV備份</button>
+<button class="btn-del" onclick="clearAll()">🗑️ 清空全部記錄</button>
+</div>
+
+<div class="card">
+<h2>📋 記錄列表</h2>
+<div id="list"></div>
+</div>
+
+<script>
+let records = JSON.parse(localStorage.getItem('fuel')) || [];
+function save(){localStorage.setItem('fuel', JSON.stringify(records))}
+function add(){
+    const mile = Number(document.getElementById('mile').value);
+    const litre = Number(document.getElementById('litre').value);
+    const price = Number(document.getElementById('price').value);
+    const note = document.getElementById('note').value.trim();
+    if(!mile || !litre || !price){alert('請填齊里程、油量、油價');return;}
+    const last = records[records.length-1];
+    let dist = null, fuel100 = null, costKm = null;
+    if(last){
+        dist = mile - last.mile;
+        fuel100 = (litre / dist *100).toFixed(2);
+        costKm = (litre * price / dist).toFixed(3);
+    }
+    records.push({
+        date: new Date().toLocaleString('zh-Hant'),
+        mile,litre,price,dist,fuel100,costKm,note
+    });
+    save();render();
+    document.getElementById('mile').value='';
+    document.getElementById('litre').value='';
+    document.getElementById('price').value='';
+    document.getElementById('note').value='';
+    alert('新增成功！');
+}
+function render(){
+    const box = document.getElementById('list');
+    const statBox = document.getElementById('stat');
+    box.innerHTML = '';
+    if(records.length===0){box.innerHTML='暫時冇記錄';statBox.innerText='平均油耗：- L/100km｜每公里油費：- MOP';return;}
+    let sumFuel=0,sumDist=0;
+    records.forEach((r,i)=>{
+        if(r.fuel100){sumFuel += Number(r.fuel100);sumDist += Number(r.dist);}
+        box.innerHTML += `<div class="item">${r.date}<br>里程：${r.mile}km｜加${r.litre}L@${r.price}MOP/L ${r.dist?'｜行${r.dist}km，油耗${r.fuel100} L/100km，每公里${r.costKm} MOP':''}${r.note?'<br>備註：'+r.note:''} <button onclick="del(${i})">刪除</button></div>`;
+    })
+    const avgFuel = sumDist>0 ? (sumFuel / records.filter(x=>x.fuel100).length).toFixed(2) : '-';
+    const avgCost = sumDist>0 ? (sumFuel * records[records.length-1].price / sumDist).toFixed(3) : '-';
+    statBox.innerText = `平均油耗：${avgFuel} L/100km｜每公里油費：${avgCost} MOP`;
+}
+function del(i){
+    if(!confirm('刪除呢條？'))return;
+    records.splice(i,1);save();render();
+}
+function clearAll(){
+    if(!confirm('確定清空所有記錄？冇得返轉頭！'))return;
+    records=[];save();render();
+}
+function exportCSV(){
+    if(records.length===0){alert('暫時冇記錄');return;}
+    let csv = "日期,總里程(km),加油量(L),油價(MOP/L),行車距離(km),油耗(L/100km),每公里(MOP),備註\n";
+    records.forEach(r=>csv += `${r.date},${r.mile},${r.litre},${r.price},${r.dist||''},${r.fuel100||''},${r.costKm||''},${r.note||''}\n`);
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url;a.download="AFR125X油耗記錄.csv";a.click();
+    URL.revokeObjectURL(url);
+}
+render();
+</script>
+</body>
+</html>
