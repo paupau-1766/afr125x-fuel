@@ -6,6 +6,7 @@
 <title>AFR125X 油耗記錄｜澳門98</title>
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQUZSMTI1WCDlhazlhazorqHlhb8iLCJzaG9ydF9uYW1lIjoiQUZSMTI1WCIsImRlc2NyaXB0aW9uIjoiQUZSMTI1WCDehOWbv+WcsOWbv+S6p+S6pIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmNWY3ZjkiLCJ0aGVtZV9jb2xvciI6IiMzNzcwZjAiLCJpY29ucyI6W3sic3JjIjoiZGF0YTppbWFnZS9zdmcreG1sLDxzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgMTAwIDEwMCc+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9JyMzNzcwZjAnLz48dGV4dCB4PSc1MCcgeT0nNjAnIGZvbnQtZmFtaWx5PSJBcmlhbCcgZm9udC1zaXplPSc1MCcgZmlsbD0nd2hpdGUnIHRleHQtYW5jaG9yPSJtaWRkbGUiPkY8L3RleHQ+PC9zdmc+Iiwic2l6ZXMiOiIxOTJ4MTkyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV19">
 <meta name="theme-color" content="#3770f0">
+<meta name="mobile-web-app-capable" content="yes">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
 body{background:#f5f7f9;padding:16px}
@@ -44,6 +45,21 @@ button{width:100%;padding:14px;border:none;border-radius:10px;margin-top:8px;fon
 </div>
 
 <script>
+// ===== Service Worker 內嵌（重點！用呢個先滿足Chrome安裝條件）
+const swCode = `
+const CACHE_NAME = 'fuel-app-v1';
+self.addEventListener('install', e=>{self.skipWaiting();});
+self.addEventListener('activate', e=>{e.waitUntil(self.clients.claim());});
+self.addEventListener('fetch', e=>{
+  e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));
+});
+`;
+const swBlob = new Blob([swCode],{type:'application/javascript'});
+const swUrl = URL.createObjectURL(swBlob);
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register(swUrl).catch(console.log);
+}
+
 let records = JSON.parse(localStorage.getItem('fuel')) || [];
 function save(){localStorage.setItem('fuel', JSON.stringify(records))}
 function add(){
